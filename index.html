@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智能运动健康评估报告</title>
+  <link rel="stylesheet" href="tailwind.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <script src="https://raw.githack.com/eKoopmans/html2pdf/master/dist/html2pdf.bundle.js"></script>
+
+</head>
+<body class="bg-gray-950 text-white font-sans min-h-screen">
+  <div class="flex h-screen overflow-hidden">
+    <!-- 左侧选项栏 -->
+    <aside class="w-80 bg-gray-900 border-r border-gray-700 p-6 space-y-6 overflow-y-auto">
+      <div class="text-2xl font-bold text-cyan-400">🧭 健康选项</div>
+      <div>
+        <label class="block mb-1">身高（cm）</label>
+        <input id="height" type="number" class="w-full p-2 rounded bg-gray-800 border border-gray-600">
+      </div>
+      <div>
+        <label class="block mb-1">体重（kg）</label>
+        <input id="weight" type="number" class="w-full p-2 rounded bg-gray-800 border border-gray-600">
+      </div>
+      <div>
+        <label class="block mb-1">腰围（cm）</label>
+        <input id="waist" type="number" class="w-full p-2 rounded bg-gray-800 border border-gray-600">
+      </div>
+      <div>
+        <label class="block mb-1">臀围（cm）</label>
+        <input id="hip" type="number" class="w-full p-2 rounded bg-gray-800 border border-gray-600">
+      </div>
+      <div>
+        <label class="block mb-1">年龄</label>
+        <input id="age" type="number" class="w-full p-2 rounded bg-gray-800 border border-gray-600">
+      </div>
+      <div>
+        <label class="block mb-1">历史伤病（可选）</label>
+        <input id="injury" type="text" class="w-full p-2 rounded bg-gray-800 border border-gray-600">
+      </div>
+      <div>
+        <label class="block mb-1">运动需求</label>
+        <select id="demand" class="w-full p-2 rounded bg-gray-800 border border-gray-600">
+          <option value="增肌">增肌</option>
+          <option value="减脂">减脂</option>
+          <option value="塑型">塑型</option>
+          <option value="健康">增强健康</option>
+        </select>
+      </div>
+      <div>
+        <button id="parqBtn" class="w-full mt-4 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded">运动风险评分（PAR-Q）</button>
+      </div>
+      <button id="evalBtn" class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded">立即评估</button>
+    </aside>
+
+    <!-- 右侧报告展示区 -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-white">📄 运动健康报告</h1>
+        <div class="flex items-center gap-4">
+  <div class="text-3xl font-bold text-green-400">评分：<span id="score">--</span></div>
+  <button id="exportPdfBtn" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded text-sm">
+    导出为 PDF 报告
+  </button>
+</div>
+
+      </div>
+      <div id="report" class="space-y-6">
+        <!-- 动态插入：图表、建议、评分等内容 -->
+      </div>
+    </main>
+  </div>
+
+  <!-- PAR-Q 弹窗 -->
+  <div id="parqModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+    <div class="bg-gray-900 p-6 rounded-xl w-full max-w-2xl space-y-4 overflow-y-auto max-h-[90vh]">
+      <h2 class="text-2xl font-bold mb-4 text-yellow-300">🏥 PAR-Q 风险问卷</h2>
+      <div class="space-y-3 text-white">
+        <div class="space-y-3 text-white">
+  <div>
+    <label class="block mb-1 text-sm">1. 您的医生告诉过你有心脏病或高血压吗？</label>
+    <div class="flex gap-4">
+      <label><input type="radio" name="q1" value="是" class="mr-1">是</label>
+      <label><input type="radio" name="q1" value="否" class="mr-1">否</label>
+    </div>
+  </div>
+  <div>
+    <label class="block mb-1 text-sm">2. 在休息或活动中是否有胸痛？</label>
+    <div class="flex gap-4">
+      <label><input type="radio" name="q2" value="是" class="mr-1">是</label>
+      <label><input type="radio" name="q2" value="否" class="mr-1">否</label>
+    </div>
+  </div>
+  <div>
+    <label class="block mb-1 text-sm">3. 过去12个月是否曾头晕、失去平衡或晕厥？</label>
+    <div class="flex gap-4">
+      <label><input type="radio" name="q3" value="是" class="mr-1">是</label>
+      <label><input type="radio" name="q3" value="否" class="mr-1">否</label>
+    </div>
+  </div>
+  <div>
+    <label class="block mb-1 text-sm">4. 是否患有除心脏病以外的慢性病？</label>
+    <div class="flex gap-4">
+      <label><input type="radio" name="q4" value="是" class="mr-1">是</label>
+      <label><input type="radio" name="q4" value="否" class="mr-1">否</label>
+    </div>
+  </div>
+  <div>
+    <label class="block mb-1 text-sm">5. 是否正在服用处方的慢性病药物？</label>
+    <div class="flex gap-4">
+      <label><input type="radio" name="q5" value="是" class="mr-1">是</label>
+      <label><input type="radio" name="q5" value="否" class="mr-1">否</label>
+    </div>
+  </div>
+  <div>
+    <label class="block mb-1 text-sm">6. 是否有关节/骨骼/软组织疾病影响运动？</label>
+    <div class="flex gap-4">
+      <label><input type="radio" name="q6" value="是" class="mr-1">是</label>
+      <label><input type="radio" name="q6" value="否" class="mr-1">否</label>
+    </div>
+  </div>
+  <div>
+    <label class="block mb-1 text-sm">7. 医生是否建议仅在监督下运动？</label>
+    <div class="flex gap-4">
+      <label><input type="radio" name="q7" value="是" class="mr-1">是</label>
+      <label><input type="radio" name="q7" value="否" class="mr-1">否</label>
+    </div>
+  </div>
+</div>
+
+
+      </div>
+      <div class="flex justify-end space-x-4 mt-6">
+        <button onclick="submitParq()" class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded">提交问卷</button>
+        <button onclick="closeParq()" class="bg-gray-600 hover:bg-gray-500 text-white py-2 px-4 rounded">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

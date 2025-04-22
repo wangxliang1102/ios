@@ -16,12 +16,18 @@ document.getElementById('healthForm').addEventListener('submit', function(e) {
     }
 
     showLoading(true);
-    setTimeout(() => { // 模拟计算延迟
-        const metrics = calculateHealthMetrics(inputs);
-        const analysis = generateRecommendations(metrics, 
-            Array.from(document.querySelectorAll('input[name="injuries"]:checked')).map(i => i.value));
-        renderResults(metrics, analysis);
-        showLoading(false);
+    
+    setTimeout(() => {
+        try {
+            const metrics = calculateHealthMetrics(inputs);
+            const injuries = Array.from(document.querySelectorAll('input[name="injuries"]:checked')).map(i => i.value);
+            const analysis = generateRecommendations(metrics, injuries);
+            renderResults(metrics, analysis);
+        } catch (error) {
+            alert('计算过程中发生错误: ' + error.message);
+        } finally {
+            showLoading(false);
+        }
     }, 500);
 });
 
@@ -30,21 +36,21 @@ function getFormInputs() {
         height: parseFloat(document.getElementById('height').value),
         weight: parseFloat(document.getElementById('weight').value),
         age: parseInt(document.getElementById('age').value),
-        gender: document.querySelector('input[name="gender"]:checked').value,
+        gender: document.querySelector('input[name="gender"]:checked').value
     };
 }
 
 function validateInput(inputs) {
     const errors = [];
     
-    if (!inputs.height || inputs.height < 1.0 || inputs.height > 2.5) {
-        errors.push('身高范围1.0-2.5米');
+    if (isNaN(inputs.height) || inputs.height < 1.0 || inputs.height > 2.5) {
+        errors.push('请输入有效身高（1.0-2.5米）');
     }
-    if (!inputs.weight || inputs.weight < 30 || inputs.weight > 300) {
-        errors.push('体重范围30-300kg');
+    if (isNaN(inputs.weight) || inputs.weight < 30 || inputs.weight > 300) {
+        errors.push('请输入有效体重（30-300kg）');
     }
-    if (!inputs.age || inputs.age < 18 || inputs.age > 100) {
-        errors.push('年龄范围18-100岁');
+    if (isNaN(inputs.age) || inputs.age < 18 || inputs.age > 100) {
+        errors.push('请输入有效年龄（18-100岁）');
     }
 
     return errors;
@@ -92,13 +98,17 @@ function generateRecommendations(metrics, injuries) {
         '膝盖损伤': ["避免深蹲", "推荐游泳训练"],
         '腰部损伤': ["避免硬拉", "加强核心训练"]
     };
-    injuries.forEach(injury => recs.push(...(injuryAdvice[injury] || []));
+    injuries.forEach(injury => {
+        recs.push(...(injuryAdvice[injury] || []));
+    });
 
     return {
         recommendations: recs,
         diet_plan: {
             protein: metrics.protein_needs,
-            calories: metrics.weight_diff * 7.7 + 1800
+            calories: metrics.weight_diff > 0 ? 
+                metrics.weight_diff * 7.7 + 1800 : 
+                2200
         }
     };
 }
@@ -113,32 +123,44 @@ function renderResults(metrics, analysis) {
         ${renderDietPlan(analysis)}
         ${renderTrainingPlan(analysis)}
         ${renderProgressBars(metrics)}
-        <button onclick="location.reload()">🔄 重新分析</button>
+        <div class="button-container">
+            <button onclick="location.reload()" style="margin-top:20px;padding:10px 20px">🔄 重新分析</button>
+        </div>
     `;
     
     initRadarChart(metrics);
 }
 
 function renderMetricsTable(metrics) {
-    return `<table class="metrics-table">
-        <tr><td>📏 BMI</td><td>${metrics.bmi.toFixed(1)}</td><td>标准 ${STANDARDS.bmi.join('-')}</td></tr>
-        <tr><td>📈 体脂率</td><td>${metrics.body_fat.toFixed(1)}%</td>
-            <td>标准 ${STANDARDS.body_fat[metrics.gender].join('%-')}%</td></tr>
-        <tr><td>🎯 理想体重</td><td>${metrics.ideal_weight.toFixed(1)}kg</td>
-            <td>差异 ${metrics.weight_diff > 0 ? '+' : ''}${metrics.weight_diff.toFixed(1)}kg</td></tr>
+    return `<table class="metrics-table" style="width:100%;border-collapse:collapse;">
+        <tr>
+            <td>📏 BMI</td>
+            <td>${metrics.bmi.toFixed(1)}</td>
+            <td>标准 ${STANDARDS.bmi.join('-')}</td>
+        </tr>
+        <tr>
+            <td>📈 体脂率</td>
+            <td>${metrics.body_fat.toFixed(1)}%</td>
+            <td>标准 ${STANDARDS.body_fat[metrics.gender].join('%-')}%</td>
+        </tr>
+        <tr>
+            <td>🎯 理想体重</td>
+            <td>${metrics.ideal_weight.toFixed(1)}kg</td>
+            <td>差异 ${metrics.weight_diff > 0 ? '+' : ''}${metrics.weight_diff.toFixed(1)}kg</td>
+        </tr>
     </table>`;
 }
 
 function renderDietPlan(analysis) {
     return `<div class="collapsible">
         <h3>🍽️ 每日饮食建议</h3>
-        <table>
-            <tr><th>营养素</th><th>建议摄入量</th></tr>
+        <table style="width:100%;margin:10px 0">
+            <tr><th style="text-align:left">营养素</th><th style="text-align:left">建议摄入量</th></tr>
             <tr><td>蛋白质</td><td>${analysis.diet_plan.protein.toFixed(1)}g</td></tr>
             <tr><td>总热量</td><td>${analysis.diet_plan.calories.toFixed(0)}大卡</td></tr>
         </table>
         <h4>推荐食物搭配：</h4>
-        <ul>
+        <ul style="margin-left:20px">
             <li>早餐：燕麦50g + 鸡蛋2个 + 坚果30g</li>
             <li>午餐：糙米饭150g + 鸡胸肉200g + 西兰花200g</li>
             <li>晚餐：三文鱼150g + 杂粮粥200g + 时蔬300g</li>
@@ -149,19 +171,25 @@ function renderDietPlan(analysis) {
 function renderTrainingPlan(analysis) {
     return `<div class="collapsible">
         <h3>🏅 个性化训练方案</h3>
-        <div class="training-grid">
-            <div><h4>💪 力量训练</h4><ul>
-                ${analysis.recommendations.slice(0,2).map(r => `<li>${r}</li>`).join('')}
-            </ul></div>
-            <div><h4>🏃 有氧训练</h4><ul>
-                ${analysis.recommendations.slice(2,4).map(r => `<li>${r}</li>`).join('')}
-            </ul></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div>
+                <h4>💪 力量训练</h4>
+                <ul style="margin-left:20px">
+                    ${analysis.recommendations.slice(0,2).map(r => `<li>${r}</li>`).join('')}
+                </ul>
+            </div>
+            <div>
+                <h4>🏃 有氧训练</h4>
+                <ul style="margin-left:20px">
+                    ${analysis.recommendations.slice(2,4).map(r => `<li>${r}</li>`).join('')}
+                </ul>
+            </div>
         </div>
     </div>`;
 }
 
 function renderProgressBars(metrics) {
-    return `<div class="progress-bars">
+    return `<div style="margin:20px 0">
         ${createProgressBar('BMI', metrics.bmi, 30)}
         ${createProgressBar('体脂率', metrics.body_fat, 40)}
     </div>`;
@@ -182,14 +210,20 @@ function createProgressBar(title, current, max) {
 
 function initRadarChart(metrics) {
     const chart = echarts.init(document.getElementById('radarChart'));
-    chart.setOption({
+    const option = {
         radar: {
             indicator: [
                 { name: 'BMI', max: 35 },
                 { name: '体脂率', max: 40 },
                 { name: '蛋白质需求', max: 200 },
                 { name: '体重差异', max: Math.abs(metrics.weight_diff) + 10 }
-            ]
+            ],
+            shape: 'circle',
+            splitArea: {
+                areaStyle: {
+                    color: ['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.6)', 'rgba(255,255,255,0.4)']
+                }
+            }
         },
         series: [{
             type: 'radar',
@@ -201,21 +235,15 @@ function initRadarChart(metrics) {
                     Math.abs(metrics.weight_diff)
                 ],
                 name: '健康指标',
-                areaStyle: { color: 'rgba(64, 158, 255, 0.6)' }
+                areaStyle: {
+                    color: 'rgba(64, 158, 255, 0.6)'
+                }
             }]
         }]
-    });
+    };
+    chart.setOption(option);
 }
 
 function showLoading(show) {
-    const loader = document.getElementById('loader') || createLoader();
-    loader.style.display = show ? 'block' : 'none';
-}
-
-function createLoader() {
-    const loader = document.createElement('div');
-    loader.id = 'loader';
-    loader.innerHTML = `<div class="spinner"></div>`;
-    document.body.appendChild(loader);
-    return loader;
+    document.getElementById('loader').style.display = show ? 'flex' : 'none';
 }

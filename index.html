@@ -30,10 +30,15 @@
         margin-bottom: 2rem;
     }
 
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
     .result-grid {
         display: grid;
         grid-template-columns: 1fr 2fr;
         gap: 2rem;
+        margin-bottom: 2rem;
     }
 
     .progress-container {
@@ -48,30 +53,57 @@
     .progress-bar {
         height: 100%;
         transition: width 0.3s ease;
+        padding: 0 10px;
+        color: white;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+    }
+
+    .collapsible {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin: 1rem 0;
+    }
+
+    #loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255,255,255,0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 
     @media (max-width: 768px) {
         .result-grid {
             grid-template-columns: 1fr;
         }
-
-        .container {
-            padding: 10px;
-        }
-    }
-
-    .collapsible {
-        margin: 10px 0;
-        padding: 10px;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 style="text-align: center">🏋️ 智能体态分析系统</h1>
+        <h1 style="text-align: center">Inter Health</h1>
         
         <form id="healthForm" class="input-section">
             <div class="form-group">
@@ -106,6 +138,11 @@
         <div id="result"></div>
     </div>
 
+    <div id="loader">
+        <div class="spinner"></div>
+    </div>
+
     <script src="intehealth.js"></script>
 </body>
 </html>
+
